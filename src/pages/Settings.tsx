@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { PvPanelProvider, usePvPanel } from '@/context/PvPanelContext';
 import { 
@@ -25,7 +25,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 
 const SettingsContent = () => {
-  const { panelState, setMeasurementInterval, setAlertThreshold, setPanelCharacteristics } = usePvPanel();
+  const { panelState, setMeasurementInterval, setAlertThreshold } = usePvPanel();
   const { toast } = useToast();
   
   const [measurementInterval, setLocalMeasurementInterval] = useState("5");
@@ -49,20 +49,30 @@ const SettingsContent = () => {
     }
   });
   
-  const onSubmit = (data) => {
-    if (setPanelCharacteristics) {
-      setPanelCharacteristics(data);
-      toast({
-        title: "Settings updated",
-        description: "Panel characteristics have been updated successfully.",
-      });
-    } else {
-      toast({
-        title: "Error updating settings",
-        description: "Failed to save panel characteristics. Please try again.",
-        variant: "destructive",
-      });
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSystemSettings = localStorage.getItem('systemSettings');
+    const savedPanelSettings = localStorage.getItem('panelSettings');
+    
+    if (savedSystemSettings) {
+      const { measurementInterval: savedInterval, alertThreshold: savedThreshold } = JSON.parse(savedSystemSettings);
+      setLocalMeasurementInterval(savedInterval);
+      setLocalAlertThreshold(savedThreshold);
     }
+    
+    if (savedPanelSettings) {
+      form.reset(JSON.parse(savedPanelSettings));
+    }
+  }, [form]);
+  
+  const onSubmit = (data) => {
+    // Save panel settings to localStorage
+    localStorage.setItem('panelSettings', JSON.stringify(data));
+    console.log("Panel characteristics updated:", data);
+    toast({
+      title: "Settings updated",
+      description: "Panel characteristics have been updated successfully.",
+    });
   };
   
   const handleSystemSettingsSubmit = () => {
@@ -71,6 +81,12 @@ const SettingsContent = () => {
       const intervalValue = parseInt(measurementInterval, 10);
       setMeasurementInterval(intervalValue);
       setAlertThreshold(alertThreshold);
+      
+      // Save system settings to localStorage
+      localStorage.setItem('systemSettings', JSON.stringify({
+        measurementInterval,
+        alertThreshold
+      }));
       
       console.log("System settings updated:", { measurementInterval, alertThreshold });
       toast({
@@ -415,3 +431,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
